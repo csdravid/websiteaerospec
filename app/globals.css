@@ -2,25 +2,65 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #211938;
+  --ink: #211938; /* Fuchsia Blue/950 */
+  --ink-soft: #6245bd; /* Fuchsia Blue/700 — hover on ink surfaces */
+  --accent: #7b61ff; /* Medium Purple/Accent */
+  --accent-strong: #5d30f7; /* Medium Purple/600 — hover on accent surfaces */
+  --accent-soft: #e3e5fc; /* Fuchsia Blue/100 */
+  --accent-bright: #a78bfa; /* lighter accent for text on dark (ink) backgrounds — #accent fails contrast there */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-bright: var(--accent-bright);
+  --font-sans: var(--font-manrope);
+  --animate-spin-slow: spin-slow 14s linear infinite;
+  --animate-particle-drift: particle-drift 8s ease-in-out infinite;
+  --animate-marquee: marquee 32s linear infinite;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes particle-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--dx, 10px), var(--dy, -14px));
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.12;
+  mix-blend-mode: normal;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-repeat: repeat;
 }
