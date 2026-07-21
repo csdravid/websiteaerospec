@@ -3,36 +3,35 @@ const TEAM = [
     name: "Nikunj Dudani",
     title: "CEO, Co-founder",
     linkedin: "https://www.linkedin.com/in/nikunj-dudani?originalSubdomain=ch",
+    photo: "/team/nikunj-dudani.jpg",
   },
   {
     name: "Satoshi Takahama",
     title: "Scientific Advisor, Co-Founder",
     linkedin: "https://www.linkedin.com/in/satoshi-takahama-aa92872/",
+    photo: "/team/satoshi-takahama.jpg",
   },
   {
     name: "Andrea Baccarini",
     title: "CTO",
     linkedin: "https://www.linkedin.com/in/baccandr/",
+    photo: "/team/andrea-baccarini.jpg",
   },
   {
     name: "Kamila Babayeva",
     title: "Programming",
     linkedin: "https://www.linkedin.com/in/kamilababayeva/",
+    photo: "/team/kamila-babayeva.jpg",
   },
   {
     name: "Myrabelle Oestreicher",
     title: "Sales & Marketing",
     linkedin: "https://www.linkedin.com/in/myrabelle-oestreicher-7ba2a9122/",
+    photo: "/team/myrabelle-oestreicher.jpeg",
   },
 ];
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("");
-}
-
+import Image from "next/image";
 import { ParticleField } from "./ParticleField";
 import { Reveal } from "./Reveal";
 
@@ -52,8 +51,14 @@ export function TeamSection() {
           {TEAM.map((member) => {
             const card = (
               <>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
-                  {initials(member.name)}
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white">
+                  <Image
+                    src={member.photo}
+                    alt={member.name}
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                  />
                 </div>
                 <div>
                   <p className="font-semibold text-ink">{member.name}</p>

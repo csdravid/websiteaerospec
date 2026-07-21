@@ -1,3 +1,4 @@
+import { InstrumentReadout } from "./InstrumentReadout";
 import { ParticleField } from "./ParticleField";
 import { Reveal } from "./Reveal";
 
@@ -10,9 +11,10 @@ export function ProblemSection() {
           <p className="text-base font-semibold uppercase tracking-wider text-accent">
             The problem
           </p>
-          <p className="mt-4 text-6xl font-semibold tracking-tight text-ink md:text-8xl">
-            4.2M
-          </p>
+          <InstrumentReadout
+            value="4.2M"
+            className="mt-4 block text-6xl font-semibold tracking-tight text-ink md:text-8xl"
+          />
           <p className="mt-2 text-lg leading-relaxed text-ink/60">
             premature deaths every year. The WHO identifies aerosol pollution
             as the single largest environmental health risk.

@@ -24,6 +24,7 @@
   --animate-spin-slow: spin-slow 14s linear infinite;
   --animate-particle-drift: particle-drift 8s ease-in-out infinite;
   --animate-marquee: marquee 32s linear infinite;
+  --animate-spectral-jitter: spectral-jitter 7s ease-in-out infinite;
 }
 
 body {
@@ -51,6 +52,33 @@ body {
 @keyframes marquee {
   to {
     transform: translateX(-50%);
+  }
+}
+
+/* Irregular, non-uniform steps (not a smooth sine loop) so the trace reads
+   as sensor noise rather than a decorative wave. */
+@keyframes spectral-jitter {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  9% {
+    transform: translateY(-0.6px);
+  }
+  22% {
+    transform: translateY(0.3px);
+  }
+  38% {
+    transform: translateY(-0.2px);
+  }
+  54% {
+    transform: translateY(0.5px);
+  }
+  71% {
+    transform: translateY(-0.4px);
+  }
+  85% {
+    transform: translateY(0.2px);
   }
 }
 

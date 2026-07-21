@@ -1,58 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { handleNavClick } from "@/lib/scroll";
+import { AerospecWordmark } from "@/components/AerospecWordmark";
 
 const NAV_LINKS = [
   { href: "#problem", label: "Problem" },
   { href: "#product", label: "Product" },
   { href: "#impact", label: "Impact" },
+  { href: "#industries", label: "Industries" },
   { href: "#why-us", label: "Why us" },
   { href: "#team", label: "Team" },
   { href: "#journey", label: "Journey" },
 ];
-
-function easeInOutCubic(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-function smoothScrollTo(targetY: number, duration = 1400) {
-  const startY = window.scrollY;
-  const diff = targetY - startY;
-  const startTime = performance.now();
-
-  function step() {
-    const progress = Math.min((performance.now() - startTime) / duration, 1);
-    window.scrollTo(0, startY + diff * easeInOutCubic(progress));
-    if (progress < 1) setTimeout(step, 16);
-  }
-
-  step();
-}
-
-// Sections are `position: sticky`, so once scrolled past, they stay "stuck"
-// at top:0 for the rest of the page (that's what drives the card-stack
-// effect) — which means getBoundingClientRect()/offsetTop no longer reflect
-// their true document position. Sum sibling heights instead, which reflects
-// each section's own box size and isn't affected by sticky positioning.
-function getStaticTop(el: HTMLElement) {
-  let top = 0;
-  let node = el.previousElementSibling as HTMLElement | null;
-  while (node) {
-    top += node.offsetHeight;
-    node = node.previousElementSibling as HTMLElement | null;
-  }
-  return top;
-}
-
-function handleNavClick(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
-  const id = href.replace("#", "");
-  const target = document.getElementById(id);
-  if (!target) return;
-  e.preventDefault();
-  smoothScrollTo(getStaticTop(target));
-  history.pushState(null, "", href);
-}
 
 function BoldWaveLabel({ text }: { text: string }) {
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -120,13 +80,10 @@ export function Navbar() {
               : "bg-transparent"
           }`}
         >
-          <Image
-            src={scrolled ? "/aerospec-logo.webp" : "/aerospec-logo-white.png"}
-            alt="AeroSpec"
-            width={112}
-            height={23}
-            className="translate-y-[2px]"
-            priority
+          <AerospecWordmark
+            className={`h-[23px] w-auto translate-y-[2px] transition-colors duration-300 ${
+              scrolled ? "text-ink" : "text-white"
+            }`}
           />
         </a>
 

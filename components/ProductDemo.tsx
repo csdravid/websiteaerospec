@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const CATEGORIES = [
   { id: "organic", label: "Organic carbon", color: "#3987e5" },
@@ -38,6 +38,15 @@ export function ProductDemo() {
     SCENARIOS[0].id,
   );
   const scenario = SCENARIOS.find((s) => s.id === activeId)!;
+
+  // Bars start at 0 on mount (i.e. whenever the modal opens, since this
+  // component unmounts on close) and draw in to their real values a frame
+  // later, so the reading appears to be taken rather than shown pre-filled.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 20);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div>
@@ -81,7 +90,10 @@ export function ProductDemo() {
               <div className="h-2.5 flex-1 bg-white/10">
                 <div
                   className="h-2.5 rounded-r-[4px] transition-all duration-500 ease-out"
-                  style={{ width: `${value}%`, backgroundColor: cat.color }}
+                  style={{
+                    width: `${ready ? value : 0}%`,
+                    backgroundColor: cat.color,
+                  }}
                 />
               </div>
               <span className="w-12 shrink-0 text-right text-base font-semibold tabular-nums text-white">

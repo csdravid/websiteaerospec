@@ -1,4 +1,8 @@
+"use client";
+
 import { Reveal } from "./Reveal";
+import { SpectralTrace } from "./SpectralTrace";
+import { handleNavClick } from "@/lib/scroll";
 
 function RotatingBadge() {
   return (
@@ -46,12 +50,14 @@ export function Hero() {
           <div className="flex flex-wrap gap-4 pt-2">
             <a
               href="#contact"
+              onClick={(e) => handleNavClick(e, "#contact")}
               className="rounded-md bg-accent px-6 py-3 text-base font-bold text-white transition-all duration-200 hover:scale-[1.03] hover:bg-accent-strong active:scale-95"
             >
               Talk to us
             </a>
             <a
               href="#product"
+              onClick={(e) => handleNavClick(e, "#product")}
               className="rounded-md bg-accent-soft px-6 py-3 text-base font-bold text-ink transition-all duration-200 hover:scale-[1.03] hover:bg-white active:scale-95"
             >
               Explore the AIR Monitor
@@ -60,15 +66,18 @@ export function Hero() {
         </Reveal>
       </div>
 
-      <div className="mx-auto mt-8 flex w-full max-w-[1600px] flex-col gap-6 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-base uppercase tracking-wider text-white/40">
-          What makes it possible
-        </p>
-        <ul className="flex flex-wrap gap-x-10 gap-y-3 text-base font-medium text-white/70">
-          <li>Near-real-time infrared spectroscopy</li>
-          <li>Automatic source-tracing</li>
-          <li>No expert analysis required</li>
-        </ul>
+      <div className="mx-auto mt-8 w-full max-w-[1600px]">
+        <SpectralTrace className="h-8 w-full text-white/25" />
+        <div className="flex flex-col gap-6 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-base uppercase tracking-wider text-white/40">
+            What makes it possible
+          </p>
+          <ul className="flex flex-wrap gap-x-10 gap-y-3 text-base font-medium text-white/70">
+            <li>Near-real-time infrared spectroscopy</li>
+            <li>Automatic source-tracing</li>
+            <li>No expert analysis required</li>
+          </ul>
+        </div>
       </div>
     </section>
   );

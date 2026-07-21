@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ProductDemo } from "./ProductDemo";
 import { Reveal } from "./Reveal";
+import { useModalLock } from "@/lib/useModalLock";
+import { scrollToSection } from "@/lib/scroll";
 
 const FEATURES = [
   {
@@ -55,6 +57,13 @@ const COLLAPSED_BASIS = (100 - EXPANDED_BASIS) / (COLUMN_COUNT - 1);
 const RESTING_BASIS = 100 / COLUMN_COUNT;
 const ACCORDION_EASE = "cubic-bezier(0.4,0,0.2,1)";
 
+// `useLayoutEffect` is a no-op (with a dev warning) during SSR, so fall back to
+// `useEffect` on the server; on the client it always resolves to the real
+// `useLayoutEffect`. See the comment on the row-measuring effect below for why
+// the synchronous timing matters here.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 function AccordionColumn({
   label,
   word,
@@ -67,6 +76,7 @@ function AccordionColumn({
   isDimmed,
   onHoverStart,
   onHoverEnd,
+  contentWidth,
 }: {
   label: string;
   word: string;
@@ -79,6 +89,19 @@ function AccordionColumn({
   isDimmed: boolean;
   onHoverStart: () => void;
   onHoverEnd: () => void;
+  /** Fixed pixel width for the expanded title/description block, matching
+   *  the panel's fully-expanded (EXPANDED_BASIS) width. Passing a fixed
+   *  width here — instead of letting the block inherit the width of its
+   *  (currently animating) flex-basis parent — means the text's wrap width
+   *  never changes during the resize transition, so it can be revealed
+   *  (via the column's overflow-hidden) as soon as it fades in without any
+   *  visible reflow/jump. Undefined until measured (see
+   *  useIsomorphicLayoutEffect below — this is set synchronously before the
+   *  first paint, so in practice a real hover can never observe it
+   *  undefined). The wrapper below anchors via `left-6` + this explicit
+   *  width only (no `right-6`) so there's no competing constraint to
+   *  resolve: the box's width is unambiguously this fixed value. */
+  contentWidth?: number;
 }) {
   const basis = isHovered ? EXPANDED_BASIS : isDimmed ? COLLAPSED_BASIS : RESTING_BASIS;
 
@@ -108,30 +131,56 @@ function AccordionColumn({
         </h3>
       </div>
 
-      {/* Expanded state: full content */}
+      {/* Expanded state: the number stays pinned at the top, at the same
+          position it holds in the collapsed state, so it lines up with the
+          "01"-style numbers on every other (still-collapsed) column.
+
+          The title+description block is intentionally NOT anchored as one
+          bottom-pinned flex group anymore — that was the original bug: a
+          taller description pushed the title up away from where the
+          collapsed word sits. Instead the block is pinned via `bottom-8`,
+          the exact same 32px (py-8) inset the collapsed word's own bottom
+          edge sits at — so the description's last line lands flush with
+          where the word sits, rather than the title's top. Since every
+          description wraps to exactly 2 lines at the expanded width, this
+          block's height is constant across all six columns, so the title's
+          top position ends up constant too as a side effect.
+
+          Fade-in no longer waits for the 500ms flex-basis resize to
+          finish: `contentWidth` locks this block's wrap width to the
+          panel's fully-expanded width regardless of the panel's current
+          (animating) width, so the text's line-wrapping never changes
+          mid-resize — only how much of it is visible, via the column's
+          overflow-hidden. That removes the need for the old delay. */}
       <div
-        className={`absolute inset-0 flex flex-col justify-end p-6 transition-opacity ease-out ${
-          isHovered ? "opacity-100 duration-300 delay-200" : "opacity-0 duration-150"
+        className={`absolute inset-0 flex flex-col px-6 pt-8 transition-opacity ease-out ${
+          isHovered ? "opacity-100 duration-150" : "opacity-0 duration-150"
         }`}
       >
-        <span className="text-sm font-semibold uppercase tracking-wider text-white/80">
-          {label}
-        </span>
-        <h3 className="mt-2 text-xl font-semibold">{title}</h3>
-        <p className="mt-2 text-base leading-relaxed text-white/80">
-          {description}
-        </p>
-        {cta && (
-          <span className="mt-3 inline-flex w-fit items-center gap-2 text-sm font-semibold">
-            {cta}
-            <span
-              aria-hidden
-              className={`transition-transform duration-300 ${isHovered ? "translate-x-1" : ""}`}
-            >
-              →
-            </span>
-          </span>
-        )}
+        <span className="text-2xl font-extrabold">{label}</span>
+        <div
+          className="absolute left-6 bottom-8"
+          style={contentWidth ? { width: contentWidth } : undefined}
+        >
+          <h3 className="text-xl font-semibold leading-none">{title}</h3>
+          <p className="mt-1 text-base text-white/80">
+            {description}
+            {cta && (
+              <>
+                {" "}
+                <span className="inline-flex items-center gap-1 font-semibold whitespace-nowrap">
+                  {cta}
+                  <span
+                    aria-hidden
+                    className={`transition-transform duration-300 ${isHovered ? "translate-x-1" : ""}`}
+                  >
+                    →
+                  </span>
+                </span>
+              </>
+            )}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -140,15 +189,44 @@ function AccordionColumn({
 export function ProductSection() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [expandedContentWidth, setExpandedContentWidth] = useState<number>();
+  const rowRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!demoOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDemoOpen(false);
+  useModalLock(demoOpen, setDemoOpen);
+
+  const openDemo = () => scrollToSection("product", () => setDemoOpen(true), 0);
+
+  // Measure the accordion row's own (static) width so each column's
+  // expanded title/description block can be given a fixed width matching
+  // EXPANDED_BASIS, independent of any single column's currently-animating
+  // flex-basis. See the contentWidth prop comment on AccordionColumn.
+  //
+  // This runs in useLayoutEffect (not useEffect) deliberately: useEffect
+  // fires asynchronously after the browser paints, which leaves a real
+  // (if brief) window after mount where contentWidth is still undefined —
+  // during that window the wrapper's style is `undefined`, so it falls
+  // back to being sized by its (unhovered, narrow) flex parent. If a hover
+  // landed inside that window, `AccordionColumn` would render initially
+  // without a fixed width and then "snap" to one once this effect finally
+  // ran, i.e. exactly the squeeze-then-release bug this mechanism exists
+  // to prevent. useLayoutEffect runs synchronously right after DOM
+  // mutations but before paint, so contentWidth is always populated before
+  // the browser ever shows a frame — and thus before any hover event could
+  // possibly fire against it.
+  useIsomorphicLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const CONTENT_PADDING_X = 24 * 2; // px-6 on each side of the expanded panel
+    const measure = () => {
+      setExpandedContentWidth(
+        row.clientWidth * (EXPANDED_BASIS / 100) - CONTENT_PADDING_X
+      );
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [demoOpen]);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section id="product" className="relative z-[3] flex min-h-screen flex-col justify-center bg-ink px-8 py-20 text-white sm:px-10 lg:px-16">
@@ -169,6 +247,7 @@ export function ProductSection() {
 
         {/* Desktop: interactive hover-expanding column accordion */}
         <div
+          ref={rowRef}
           className="mt-14 hidden h-[420px] gap-1 overflow-hidden md:flex"
           onMouseLeave={() => setHoveredIndex(null)}
         >
@@ -184,6 +263,7 @@ export function ProductSection() {
               isDimmed={hoveredIndex !== null && hoveredIndex !== i}
               onHoverStart={() => setHoveredIndex(i)}
               onHoverEnd={() => {}}
+              contentWidth={expandedContentWidth}
             />
           ))}
           <AccordionColumn
@@ -193,11 +273,12 @@ export function ProductSection() {
             description="Switch pollution sources and watch the composition breakdown update."
             color={DEMO_TILE_COLOR}
             cta="Launch demo"
-            onClick={() => setDemoOpen(true)}
+            onClick={openDemo}
             isHovered={hoveredIndex === 5}
             isDimmed={hoveredIndex !== null && hoveredIndex !== 5}
             onHoverStart={() => setHoveredIndex(5)}
             onHoverEnd={() => {}}
+            contentWidth={expandedContentWidth}
           />
         </div>
 
@@ -218,7 +299,7 @@ export function ProductSection() {
           ))}
           <button
             type="button"
-            onClick={() => setDemoOpen(true)}
+            onClick={openDemo}
             className="flex gap-4 py-6 text-left"
           >
             <span className="text-2xl font-extrabold" style={{ color: DEMO_TILE_COLOR }}>
@@ -228,14 +309,14 @@ export function ProductSection() {
               <h3 className="text-lg font-semibold">See it in action</h3>
               <p className="mt-1 text-base leading-relaxed text-white/55">
                 Switch pollution sources and watch the composition breakdown
-                update.
+                update.{" "}
+                <span
+                  className="inline-flex items-center gap-1 font-semibold whitespace-nowrap"
+                  style={{ color: DEMO_TILE_COLOR }}
+                >
+                  Launch demo →
+                </span>
               </p>
-              <span
-                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold"
-                style={{ color: DEMO_TILE_COLOR }}
-              >
-                Launch demo →
-              </span>
             </div>
           </button>
         </div>
