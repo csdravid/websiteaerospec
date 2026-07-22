@@ -136,7 +136,7 @@ export function Navbar() {
       </nav>
 
       {open && (
-        <div className="mx-auto mt-2 max-w-[1600px] bg-white/95 px-6 py-4 shadow-sm ring-1 ring-black/5 backdrop-blur-md md:hidden">
+        <div className="mx-auto mt-2 max-w-[1600px] rounded-xl bg-white/95 px-6 py-4 shadow-sm ring-1 ring-black/5 backdrop-blur-md md:hidden">
           <ul className="flex flex-col gap-4">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
