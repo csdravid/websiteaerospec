@@ -27,7 +27,7 @@ function RotatingBadge() {
 
 export function Hero() {
   return (
-    <section id="top" className="sticky top-0 z-[1] flex min-h-screen flex-col bg-ink px-6 pb-10 pt-36 text-white sm:px-10 md:pt-44 lg:px-16">
+    <section id="top" className="relative z-[1] flex min-h-screen flex-col bg-ink px-6 pb-10 pt-36 text-white sm:px-10 md:sticky md:top-0 md:pt-44 lg:px-16">
       <div className="relative mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center">
         <RotatingBadge />
         <Reveal className="flex flex-col gap-8">
